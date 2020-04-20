@@ -62,10 +62,9 @@ For example:
 jmstool ssh root@127.0.0.1 -p 2222
 `,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println(args)
 		var (
-			username    = "root"
-			host        = "127.0.0.1"
+			username    = ""
+			host        = ""
 			port        = "2222"
 			privateFile = ""
 			password    = ""
@@ -80,6 +79,10 @@ jmstool ssh root@127.0.0.1 -p 2222
 				username, host = usernameHost[0], usernameHost[1]
 				break
 			}
+		}
+		if username == "" || host == "" {
+			_ = cmd.Help()
+			os.Exit(1)
 		}
 
 		if flagPort, err := cmd.PersistentFlags().GetString("port"); err == nil {
