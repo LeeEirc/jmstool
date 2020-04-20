@@ -88,6 +88,9 @@ jmstool ssh root@127.0.0.1 -p 2222
 		if flagIdentity, err := cmd.PersistentFlags().GetString("identity"); err == nil {
 			privateFile = flagIdentity
 		}
+		if flagPassword, err := cmd.PersistentFlags().GetString("password"); err == nil {
+			password = flagPassword
+		}
 		auths := make([]gossh.AuthMethod, 0, 2)
 
 		if password == "" && privateFile == "" {
