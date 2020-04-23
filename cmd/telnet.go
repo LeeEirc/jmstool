@@ -17,9 +17,7 @@ package cmd
 
 import (
 	"fmt"
-	"golang.org/x/crypto/ssh/terminal"
 	"io"
-	"jmstool/pkg/telnetlib"
 	"log"
 	"net"
 	"os"
@@ -29,6 +27,9 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+
+	"github.com/LeeEirc/jmstool/pkg/telnetlib"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 // telnetCmd represents the telnet command

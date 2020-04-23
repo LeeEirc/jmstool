@@ -1,4 +1,4 @@
-module jmstool
+module github.com/LeeEirc/jmstool
 
 go 1.14
 

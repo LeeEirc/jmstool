@@ -15,7 +15,7 @@ limitations under the License.
 */
 package main
 
-import "jmstool/cmd"
+import "github.com/LeeEirc/jmstool/cmd"
 
 func main() {
 	cmd.Execute()
