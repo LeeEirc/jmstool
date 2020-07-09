@@ -24,4 +24,4 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Make binaries
-          uses: sosedoff/actions/golang-build@master
+        uses: sosedoff/actions/golang-build@master
