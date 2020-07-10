@@ -1,5 +1,7 @@
 #!/bin/sh -l
 
-echo "Hello $1"
+echo "当前目录： ${pwd}"
+ls "${pwd}"
+echo "Hello $1 $2 $3"
 time=$(date)
 echo "::set-output name=time::$time"
