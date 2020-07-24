@@ -1,6 +1,7 @@
 package telnetlib
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -80,7 +81,7 @@ func (c *Client) handleOption(option []byte) {
 		case NAWS:
 			sub := subOption{subCommand: IAC, options: make([]byte, 0)}
 			sub.options = append(sub.options, []byte(fmt.Sprintf("%d%d%d%d",
-				0, c.conf.TTYOptions.Wide, 0, c.conf.TTYOptions.High, ))...)
+				0, c.conf.TTYOptions.Wide, 0, c.conf.TTYOptions.High))...)
 			p.subOption = &sub
 		default:
 			return
@@ -144,8 +145,9 @@ func (c *Client) login() error {
 
 func (c *Client) handleLoginData(data []byte) AuthStatus {
 	if incorrectPattern.Match(data) {
+		log.Printf("incorrect Pattern match: %s \n", data)
 		return AuthFailed
-	} else if usernamePattern.Match(data) {
+	} else if usernamePattern.Match(data) && !bytes.Contains(data, []byte(c.conf.User)) {
 		_, _ = c.sock.Write([]byte(c.conf.User + "\r\n"))
 		log.Printf("Username pattern match: %s \n", data)
 		return AuthPartial
@@ -162,6 +164,7 @@ func (c *Client) handleLoginData(data []byte) AuthStatus {
 			log.Printf("CustomString match: %s \n", data)
 			return AuthSuccess
 		}
+		log.Printf("CustomString Pattern unmatch: %s \n", data)
 	}
 	return AuthPartial
 }
