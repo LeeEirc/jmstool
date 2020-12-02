@@ -1,8 +1,6 @@
 cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
-github.com/LeeEirc/tclientlib v0.0.0-20201202074642-0400ee3c9680 h1:RzPfTa9vuuqxTwpehv+fcT2VYz7STbZME2fG1zQ+00M=
-github.com/LeeEirc/tclientlib v0.0.0-20201202074642-0400ee3c9680/go.mod h1:RXNdd9nSPEKoFc9Avnd6Yx73AfhQNSAHL2O11a5m864=
 github.com/LeeEirc/tclientlib v0.0.0-20201202083522-cc19911c47da h1:7M+RyhL4bMCxHM7TVRyXlIeYtN6Q8+279UvHKUWvLJ4=
 github.com/LeeEirc/tclientlib v0.0.0-20201202083522-cc19911c47da/go.mod h1:RXNdd9nSPEKoFc9Avnd6Yx73AfhQNSAHL2O11a5m864=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
