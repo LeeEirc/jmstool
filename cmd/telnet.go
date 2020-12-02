@@ -22,13 +22,14 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"regexp"
 	"strings"
 	"syscall"
 	"time"
 
 	"github.com/spf13/cobra"
 
-	"github.com/LeeEirc/jmstool/pkg/telnetlib"
+	"github.com/LeeEirc/tclientlib"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -47,6 +48,7 @@ jmstool telnet root@127.0.0.1 -p 23 -P 1212
 			port     = "23"
 			password = ""
 			custom   = ""
+			err      error
 		)
 		for i := range args {
 			if strings.Contains(args[i], "@") {
@@ -77,20 +79,25 @@ jmstool telnet root@127.0.0.1 -p 23 -P 1212
 		if xterm == "" {
 			xterm = "xterm-256color"
 		}
+		successRex := regexp.MustCompile(tclientlib.DefaultSuccessRegs)
+		if custom != "" {
+			successRex = regexp.MustCompile(custom)
+		}
+
 		fd := int(os.Stdin.Fd())
 		w, h, _ := terminal.GetSize(fd)
-		conf := telnetlib.ClientConfig{
-			User:     username,
+		conf := tclientlib.Config{
+			Username: username,
 			Password: password,
 			Timeout:  30 * time.Second,
-			TTYOptions: &telnetlib.TerminalOptions{
-				Wide:  w,
-				High:  h,
-				Xterm: xterm,
+			TTYOptions: &tclientlib.TerminalOptions{
+				Wide:     w,
+				High:     h,
+				TermType: xterm,
 			},
-			CustomString: custom,
+			LoginSuccessRegex: successRex,
 		}
-		client, err := telnetlib.Dial("tcp", net.JoinHostPort(host, port), &conf)
+		client, err := tclientlib.Dial("tcp", net.JoinHostPort(host, port), &conf)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -117,13 +124,13 @@ jmstool telnet root@127.0.0.1 -p 23 -P 1212
 					}
 					w, d, err := terminal.GetSize(fd)
 					if err != nil {
-						log.Printf("Unable to send window-change reqest: %s. \n", err)
+						log.Printf("Unable to send window-change reqest: %s. \r\n", err)
 						continue
 					}
 					// 更新远端大小
 					err = client.WindowChange(w, d)
 					if err != nil {
-						log.Printf("window-change err: %s\n", err)
+						log.Printf("window-change err: %s\r\n", err)
 						continue
 					}
 				}
