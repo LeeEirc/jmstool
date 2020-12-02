@@ -97,6 +97,7 @@ jmstool telnet root@127.0.0.1 -p 23 -P 1212
 			},
 			LoginSuccessRegex: successRex,
 		}
+		tclientlib.SetMode(tclientlib.DebugMode)
 		client, err := tclientlib.Dial("tcp", net.JoinHostPort(host, port), &conf)
 		if err != nil {
 			log.Fatal(err)
