@@ -21,10 +21,8 @@ import (
 	"log"
 	"net"
 	"os"
-	"os/signal"
 	"regexp"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -119,7 +117,7 @@ jmstool telnet root@127.0.0.1 -p 23 -P 1212
 			sigChan <- struct{}{}
 		}()
 		sigwinchCh := make(chan os.Signal, 1)
-		signal.Notify(sigwinchCh, syscall.SIGWINCH)
+		WatchWindowSize(sigwinchCh)
 		for {
 			select {
 			case <-sigChan:

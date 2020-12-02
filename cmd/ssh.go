@@ -22,9 +22,7 @@ import (
 	"log"
 	"net"
 	"os"
-	"os/signal"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -169,7 +167,7 @@ jmstool ssh root@127.0.0.1 -p 2222
 		go io.Copy(in, os.Stdin)
 		go io.Copy(os.Stdout, out)
 		sigwinchCh := make(chan os.Signal, 1)
-		signal.Notify(sigwinchCh, syscall.SIGWINCH)
+		WatchWindowSize(sigwinchCh)
 		sigChan := make(chan struct{}, 1)
 		err = sess.Shell()
 		if err != nil {
