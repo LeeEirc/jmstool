@@ -107,38 +107,41 @@ jmstool telnet root@127.0.0.1 -p 23 -P 1212
 		}
 		defer terminal.Restore(fd, state)
 
-		sigChan := make(chan struct{}, 1)
+		sigChan := make(chan struct{}, 2)
 
 		go func() {
-			sigwinchCh := make(chan os.Signal, 1)
-			signal.Notify(sigwinchCh, syscall.SIGWINCH)
-			for {
-				select {
-				case <-sigChan:
+			_, _ = io.Copy(os.Stdout, client)
+			sigChan <- struct{}{}
+		}()
+		go func() {
+			_, _ = io.Copy(client, os.Stdin)
+			sigChan <- struct{}{}
+		}()
+		sigwinchCh := make(chan os.Signal, 1)
+		signal.Notify(sigwinchCh, syscall.SIGWINCH)
+		for {
+			select {
+			case <-sigChan:
+				log.Println("close telnet client\r")
+				return
+			// 阻塞读取
+			case sigwinch := <-sigwinchCh:
+				if sigwinch == nil {
 					return
-
-				// 阻塞读取
-				case sigwinch := <-sigwinchCh:
-					if sigwinch == nil {
-						return
-					}
-					w, d, err := terminal.GetSize(fd)
-					if err != nil {
-						log.Printf("Unable to send window-change reqest: %s. \r\n", err)
-						continue
-					}
-					// 更新远端大小
-					err = client.WindowChange(w, d)
-					if err != nil {
-						log.Printf("window-change err: %s\r\n", err)
-						continue
-					}
+				}
+				w, d, err := terminal.GetSize(fd)
+				if err != nil {
+					log.Printf("Unable to send window-change reqest: %s. \r\n", err)
+					continue
+				}
+				// 更新远端大小
+				err = client.WindowChange(w, d)
+				if err != nil {
+					log.Printf("window-change err: %s\r\n", err)
+					continue
 				}
 			}
-		}()
-		go io.Copy(os.Stdout, client)
-		io.Copy(client, os.Stdin)
-		log.Println("close telnet client\r")
+		}
 	},
 }
 
