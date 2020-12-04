@@ -3,7 +3,7 @@ module github.com/LeeEirc/jmstool
 go 1.14
 
 require (
-	github.com/LeeEirc/tclientlib v0.0.0-20201203031752-f06d4260f891
+	github.com/LeeEirc/tclientlib v0.0.0-20201204085416-38551ff8acd9
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/viper v1.6.3
