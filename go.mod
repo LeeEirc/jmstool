@@ -1,9 +1,9 @@
 module github.com/LeeEirc/jmstool
 
-go 1.14
+go 1.15
 
 require (
-	github.com/LeeEirc/tclientlib v0.0.0-20201202100622-ef795d0df47d
+	github.com/LeeEirc/tclientlib v0.0.0-20201204094839-0ca50e509e92
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/viper v1.6.3
