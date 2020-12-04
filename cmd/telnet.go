@@ -28,7 +28,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/LeeEirc/tclientlib"
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 )
 
 // telnetCmd represents the telnet command
@@ -83,7 +83,7 @@ jmstool telnet root@127.0.0.1 -p 23 -P 1212
 		}
 
 		fd := int(os.Stdin.Fd())
-		w, h, _ := terminal.GetSize(fd)
+		w, h, _ := term.GetSize(fd)
 		conf := tclientlib.Config{
 			Username: username,
 			Password: password,
@@ -100,11 +100,11 @@ jmstool telnet root@127.0.0.1 -p 23 -P 1212
 		if err != nil {
 			log.Fatal(err)
 		}
-		state, err := terminal.MakeRaw(fd)
+		state, err := term.MakeRaw(fd)
 		if err != nil {
 			log.Fatalf("MakeRaw err: %s", err)
 		}
-		defer terminal.Restore(fd, state)
+		defer term.Restore(fd, state)
 
 		sigChan := make(chan struct{}, 2)
 
@@ -128,7 +128,7 @@ jmstool telnet root@127.0.0.1 -p 23 -P 1212
 				if sigwinch == nil {
 					return
 				}
-				w, d, err := terminal.GetSize(fd)
+				w, d, err := term.GetSize(fd)
 				if err != nil {
 					log.Printf("Unable to send window-change reqest: %s. \r\n", err)
 					continue
