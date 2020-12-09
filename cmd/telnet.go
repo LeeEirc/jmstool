@@ -77,7 +77,7 @@ jmstool telnet root@127.0.0.1 -p 23 -P 1212
 		if xterm == "" {
 			xterm = "xterm-256color"
 		}
-		var customSuccess *regexp.Regexp
+		var customSuccess = tclientlib.DefaultLoginSuccessPattern
 		if custom != "" {
 			customSuccess = regexp.MustCompile(custom)
 		}
@@ -93,7 +93,7 @@ jmstool telnet root@127.0.0.1 -p 23 -P 1212
 				High:     h,
 				TermType: xterm,
 			},
-			CustomSuccessRegex: customSuccess,
+			LoginSuccessRegex: customSuccess,
 		}
 		tclientlib.SetMode(tclientlib.DebugMode)
 		client, err := tclientlib.Dial("tcp", net.JoinHostPort(host, port), &conf)
@@ -117,7 +117,6 @@ jmstool telnet root@127.0.0.1 -p 23 -P 1212
 			sigChan <- struct{}{}
 		}()
 		sigwinchCh := make(chan os.Signal, 1)
-		WatchWindowSize(sigwinchCh)
 		for {
 			select {
 			case <-sigChan:

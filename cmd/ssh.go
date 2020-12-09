@@ -82,6 +82,7 @@ jmstool ssh root@127.0.0.1 -p 2222
 			_ = cmd.Help()
 			os.Exit(1)
 		}
+		auths := make([]gossh.AuthMethod, 0, 2)
 
 		if flagPort, err := cmd.PersistentFlags().GetString("port"); err == nil {
 			port = flagPort
@@ -91,8 +92,9 @@ jmstool ssh root@127.0.0.1 -p 2222
 		}
 		if flagPassword, err := cmd.PersistentFlags().GetString("password"); err == nil {
 			password = flagPassword
+			auths = append(auths, gossh.Password(password))
 		}
-		auths := make([]gossh.AuthMethod, 0, 2)
+
 
 		if password == "" && privateFile == "" {
 			if _, err := fmt.Fprintf(os.Stdout, "%s@%s password: ", username, host); err != nil {
