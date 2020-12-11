@@ -34,3 +34,6 @@ jobs:
 
       - name: Build JMS Tool
         uses: ./.github/actions/build-action
+        with:
+          args:
+            build_os:${{matrix.os}}

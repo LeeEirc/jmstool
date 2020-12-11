@@ -1,6 +1,10 @@
 name: 'build JMS tool'
 author: 'Eric Lee'
 description: 'Build JMS tool'
+inputs:
+  build_os:
+    description: build os
+    required: true
 runs:
   using: "composite"
   steps:
@@ -8,6 +12,6 @@ runs:
       shell: bash
     - id: build-go-main
       run: |
-        go build -o jmstool_${go env var GOOS} .
+        go build -o jmstool_${{ inputs.build_os }} .
         ls -al
       shell: bash
