@@ -1,10 +1,11 @@
 name: 'build JMS tool'
+author: 'Eric Lee'
 description: 'Build JMS tool'
 inputs:
   go-version:  # id of input
     description: 'go version'
     required: true
-    default: '1.14'
+    default: '1.15'
   go-os:
     description: 'build os'
     required: true
@@ -14,12 +15,16 @@ inputs:
     required: true
     default: 'amd64'
 outputs:
-  time: # id of output
+  filename: # id of output
     description: 'The time we greeted you'
+    value: ${{ steps.build-go-main.outputs.filename }}
 runs:
-  using: 'docker'
-  image: 'Dockerfile'
-  args:
-    - ${{ inputs.go-version }}
-    - ${{ inputs.go-os }}
-    - ${{ inputs.go-arch }}
+  using: "composite"
+  steps:
+    - run: echo ${{ inputs.go-version }}  ${{ inputs.go-os }} ${{ inputs.go-arch }}
+      shell: bash
+    - id: build-go-main
+      run: |
+        go build -o .
+        ls -al
+      shell: bash
