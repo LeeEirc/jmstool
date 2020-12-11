@@ -2,7 +2,7 @@ name: 'build JMS tool'
 author: 'Eric Lee'
 description: 'Build JMS tool'
 inputs:
-  build_os:
+  GOOS:
     description: build os
     required: true
 runs:
@@ -12,6 +12,8 @@ runs:
       shell: bash
     - id: build-go-main
       run: |
-        go build -o jmstool_${{ inputs.build_os }} .
+        echo GOOS_ ${{ inputs_GOOS }}
+        echo GOOS- ${{ inputs.GOOS }}
+        go build -o jmstool_${{ runner.os }} .
         ls -al
       shell: bash

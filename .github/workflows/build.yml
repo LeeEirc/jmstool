@@ -36,4 +36,4 @@ jobs:
         uses: ./.github/actions/build-action
         with:
           args:
-            build_os:${{matrix.os}}
+            GOOS:${{ matrix.os }}
