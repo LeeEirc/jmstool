@@ -4,10 +4,10 @@ description: 'Build JMS tool'
 runs:
   using: "composite"
   steps:
-    - run: echo ${{ inputs.go-version }}  ${{ inputs.go-os }} ${{ inputs.go-arch }}
+    - run: echo "current dir" ${pwd}
       shell: bash
     - id: build-go-main
       run: |
-        go build -o jmstool_${{ inputs.go-os }} .
+        go build -o jmstool_${go env var GOOS} .
         ls -al
       shell: bash
