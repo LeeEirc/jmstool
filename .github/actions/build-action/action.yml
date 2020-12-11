@@ -6,8 +6,8 @@ inputs:
     description: build os
     required: true
 outputs:
-  zip_file:
-    description: 'The zip filename'
+  filename:
+    description: 'The filename'
     value: ${{ steps.build-go-main.outputs.zipfile }}
 runs:
   using: "composite"
@@ -17,7 +17,7 @@ runs:
     - id: build-go-main
       run: |
         go build -o .
-        zip --junk-paths jmstool_${{ runner.os }} jmstool*
-        echo "::set-output name=zipfile::$(echo jmstool_${{ runner.os }})"
+        tar -czvf jmstool_${{ runner.os }}.tar.gz jmstool*
+        echo "::set-output name=filename::$(echo jmstool_${{ runner.os }}.tar.gz)"
         ls -al
       shell: bash
