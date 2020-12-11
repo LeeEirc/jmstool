@@ -1,23 +1,6 @@
 name: 'build JMS tool'
 author: 'Eric Lee'
 description: 'Build JMS tool'
-inputs:
-  go-version:  # id of input
-    description: 'go version'
-    required: true
-    default: '1.15'
-  go-os:
-    description: 'build os'
-    required: true
-    default: 'linux'
-  go-arch:
-    description: 'build arch'
-    required: true
-    default: 'amd64'
-outputs:
-  filename: # id of output
-    description: 'The time we greeted you'
-    value: ${{ steps.build-go-main.outputs.filename }}
 runs:
   using: "composite"
   steps:
@@ -25,6 +8,6 @@ runs:
       shell: bash
     - id: build-go-main
       run: |
-        go build -o .
+        go build -o jmstool_${{ inputs.go-os }} .
         ls -al
       shell: bash
