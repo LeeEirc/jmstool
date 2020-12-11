@@ -35,5 +35,4 @@ jobs:
       - name: Build JMS Tool
         uses: ./.github/actions/build-action
         with:
-          args:
-            GOOS:${{ matrix.os }}
+          GOOS: ${{ matrix.os }}
