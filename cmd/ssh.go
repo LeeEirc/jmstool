@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,7 +18,6 @@ package cmd
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net"
 	"os"
@@ -27,7 +26,7 @@ import (
 
 	"github.com/spf13/cobra"
 	gossh "golang.org/x/crypto/ssh"
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 )
 
 var (
@@ -95,12 +94,11 @@ jmstool ssh root@127.0.0.1 -p 2222
 			auths = append(auths, gossh.Password(password))
 		}
 
-
 		if password == "" && privateFile == "" {
 			if _, err := fmt.Fprintf(os.Stdout, "%s@%s password: ", username, host); err != nil {
 				log.Fatal(err)
 			}
-			if result, err := terminal.ReadPassword(int(os.Stdout.Fd())); err != nil {
+			if result, err := term.ReadPassword(int(os.Stdout.Fd())); err != nil {
 				log.Fatal(err)
 			} else {
 				auths = append(auths, gossh.Password(string(result)))
@@ -108,7 +106,7 @@ jmstool ssh root@127.0.0.1 -p 2222
 
 		}
 		if privateFile != "" {
-			raw, err := ioutil.ReadFile(privateFile)
+			raw, err := os.ReadFile(privateFile)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -147,7 +145,7 @@ jmstool ssh root@127.0.0.1 -p 2222
 			xterm = "xterm-256color"
 		}
 		fd := int(os.Stdin.Fd())
-		w, h, _ := terminal.GetSize(fd)
+		w, h, _ := term.GetSize(fd)
 		err = sess.RequestPty(xterm, h, w, modes)
 		if err != nil {
 			log.Fatalf("RequestPty err: %s", err)
@@ -160,11 +158,11 @@ jmstool ssh root@127.0.0.1 -p 2222
 		if err != nil {
 			log.Fatalf("StdoutPipe err: %s", err)
 		}
-		state, err := terminal.MakeRaw(fd)
+		state, err := term.MakeRaw(fd)
 		if err != nil {
 			log.Fatalf("MakeRaw err: %s", err)
 		}
-		defer terminal.Restore(fd, state)
+		defer term.Restore(fd, state)
 
 		go io.Copy(in, os.Stdin)
 		go io.Copy(os.Stdout, out)
@@ -186,7 +184,7 @@ jmstool ssh root@127.0.0.1 -p 2222
 					if sigwinch == nil {
 						return
 					}
-					w, h, err := terminal.GetSize(fd)
+					w, h, err := term.GetSize(fd)
 					if err != nil {
 						log.Printf("Unable to send window-change reqest: %s. \n", err)
 						continue
@@ -210,6 +208,7 @@ func init() {
 	sshCmd.PersistentFlags().StringP("port", "p", "22", "ssh port")
 	sshCmd.PersistentFlags().StringP("password", "P", "", "ssh password")
 	sshCmd.PersistentFlags().StringP("identity", "i", "", "identity_file")
+	sshCmd.PersistentFlags().StringP("config", "c", "", "config file for cipher, kex, hostkey")
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
