@@ -98,10 +98,10 @@ jmstool ssh root@127.0.0.1 -p 2222
 		if flagPort, err := cmd.PersistentFlags().GetString("port"); err == nil {
 			port = flagPort
 		}
-		if flagIdentity, err := cmd.PersistentFlags().GetString("identity"); err == nil {
+		if flagIdentity, err := cmd.PersistentFlags().GetString("identity"); err == nil && flagIdentity != "" {
 			privateFile = flagIdentity
 		}
-		if flagPassword, err := cmd.PersistentFlags().GetString("password"); err == nil {
+		if flagPassword, err := cmd.PersistentFlags().GetString("password"); err == nil && flagPassword != "" {
 			password = flagPassword
 			auths = append(auths, gossh.Password(password))
 		}
@@ -110,7 +110,7 @@ jmstool ssh root@127.0.0.1 -p 2222
 		defaultConfig := ssh.Config{}
 		defaultConfig.SetDefaults()
 
-		if flagConfig, err := cmd.PersistentFlags().GetString("config"); err == nil {
+		if flagConfig, err := cmd.PersistentFlags().GetString("config"); err == nil && flagConfig != "" {
 			raw, err := os.ReadFile(flagConfig)
 			if err != nil {
 				log.Fatal(err)
@@ -156,7 +156,6 @@ jmstool ssh root@127.0.0.1 -p 2222
 
 			auths = append(auths, gossh.PublicKeys(signer))
 		}
-
 		config := &gossh.ClientConfig{
 			User:              username,
 			Auth:              auths,
