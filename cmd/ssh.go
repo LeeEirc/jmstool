@@ -25,8 +25,10 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"golang.org/x/crypto/ssh"
 	gossh "golang.org/x/crypto/ssh"
 	"golang.org/x/term"
+	"gopkg.in/yaml.v3"
 )
 
 var (
@@ -49,6 +51,16 @@ var (
 		"ssh-ed25519",
 	}
 )
+
+// old ssh ciphers issue
+// https://github.com/golang/go/issues/64779
+
+type SSHConfig struct {
+	Ciphers      []string `yaml:"Ciphers"`
+	KexAlgos     []string `yaml:"KexAlgos"`
+	MACs         []string `yaml:"MACs"`
+	HostKeyAlgos []string `yaml:"HostKeyAlgos"`
+}
 
 // sshCmd represents the ssh command
 var sshCmd = &cobra.Command{
@@ -93,6 +105,33 @@ jmstool ssh root@127.0.0.1 -p 2222
 			password = flagPassword
 			auths = append(auths, gossh.Password(password))
 		}
+		var sshConfig SSHConfig
+
+		defaultConfig := ssh.Config{}
+		defaultConfig.SetDefaults()
+
+		if flagConfig, err := cmd.PersistentFlags().GetString("config"); err == nil {
+			raw, err := os.ReadFile(flagConfig)
+			if err != nil {
+				log.Fatal(err)
+			}
+			if err := yaml.Unmarshal(raw, &sshConfig); err != nil {
+				log.Fatal(err)
+			}
+			if len(sshConfig.Ciphers) == 0 {
+				sshConfig.Ciphers = defaultConfig.Ciphers
+			}
+			if len(sshConfig.KexAlgos) == 0 {
+				sshConfig.KexAlgos = defaultConfig.KeyExchanges
+			}
+			if len(sshConfig.HostKeyAlgos) == 0 {
+				sshConfig.HostKeyAlgos = nil
+			}
+			if len(sshConfig.MACs) == 0 {
+				sshConfig.MACs = defaultConfig.MACs
+			}
+
+		}
 
 		if password == "" && privateFile == "" {
 			if _, err := fmt.Fprintf(os.Stdout, "%s@%s password: ", username, host); err != nil {
@@ -122,7 +161,7 @@ jmstool ssh root@127.0.0.1 -p 2222
 			User:              username,
 			Auth:              auths,
 			HostKeyCallback:   gossh.InsecureIgnoreHostKey(),
-			Config:            gossh.Config{Ciphers: supportedCiphers, KeyExchanges: supportedKexAlgos},
+			Config:            gossh.Config{Ciphers: sshConfig.Ciphers, KeyExchanges: sshConfig.KexAlgos, MACs: sshConfig.MACs},
 			Timeout:           30 * time.Second,
 			HostKeyAlgorithms: supportedHostKeyAlgos,
 		}
@@ -208,7 +247,7 @@ func init() {
 	sshCmd.PersistentFlags().StringP("port", "p", "22", "ssh port")
 	sshCmd.PersistentFlags().StringP("password", "P", "", "ssh password")
 	sshCmd.PersistentFlags().StringP("identity", "i", "", "identity_file")
-	sshCmd.PersistentFlags().StringP("config", "c", "", "config file for cipher, kex, hostkey")
+	sshCmd.PersistentFlags().StringP("config", "c", "", "config file for cipher, kex, hostkey, macs")
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
