@@ -1,0 +1,7 @@
+
+MACs: hmac-sha2-256,hmac-sha2-512,hmac-sha1,hmac-sha1-96
+
+#Ciphers: aes128-ctr,aes192-ctr,aes256-ctr,aes128-cbc,3des-cbc
+#KexAlgos: ecdh-sha2-nistp256,ecdh-sha2-nistp384,ecdh-sha2-nistp521,diffie-hellman-group-exchange-sha256,diffie-hellman-group-exchange-sha1,diffie-hellman-group14-sha1,diffie-hellman-group1-sha1
+
+#HostKeyAlgos: ssh-rsa,ssh-dss,ecdsa-sha2-nistp256,ssh-ed25519
