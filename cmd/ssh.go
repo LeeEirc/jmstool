@@ -25,7 +25,6 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"golang.org/x/crypto/ssh"
 	gossh "golang.org/x/crypto/ssh"
 	"golang.org/x/term"
 	"gopkg.in/yaml.v3"
@@ -107,7 +106,7 @@ jmstool ssh root@127.0.0.1 -p 2222
 		}
 		var sshConfig SSHConfig
 
-		defaultConfig := ssh.Config{}
+		defaultConfig := gossh.Config{}
 		defaultConfig.SetDefaults()
 
 		if flagConfig, err := cmd.PersistentFlags().GetString("config"); err == nil && flagConfig != "" {
@@ -118,6 +117,7 @@ jmstool ssh root@127.0.0.1 -p 2222
 			if err := yaml.Unmarshal(raw, &sshConfig); err != nil {
 				log.Fatal(err)
 			}
+			fmt.Printf("from config: %+v\n", sshConfig)
 			if len(sshConfig.Ciphers) == 0 {
 				sshConfig.Ciphers = defaultConfig.Ciphers
 			}
@@ -130,7 +130,6 @@ jmstool ssh root@127.0.0.1 -p 2222
 			if len(sshConfig.MACs) == 0 {
 				sshConfig.MACs = defaultConfig.MACs
 			}
-
 		}
 
 		if password == "" && privateFile == "" {

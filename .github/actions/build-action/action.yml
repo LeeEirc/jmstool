@@ -16,7 +16,7 @@ runs:
       shell: bash
     - id: build-go-main
       run: |
-        go build -o .
+        CGO_ENABLED=0 go build -o .
         tar -czvf jmstool_${{ runner.os }}.tar.gz jmstool*
         echo "::set-output name=filename::$(echo jmstool_${{ runner.os }}.tar.gz)"
         ls -al
