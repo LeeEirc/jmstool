@@ -161,7 +161,7 @@ jmstool ssh root@127.0.0.1 -p 2222
 			HostKeyCallback:   gossh.InsecureIgnoreHostKey(),
 			Config:            gossh.Config{Ciphers: sshConfig.Ciphers, KeyExchanges: sshConfig.KexAlgos, MACs: sshConfig.MACs},
 			Timeout:           30 * time.Second,
-			HostKeyAlgorithms: supportedHostKeyAlgos,
+			HostKeyAlgorithms: sshConfig.HostKeyAlgos,
 		}
 		client, err := gossh.Dial("tcp", net.JoinHostPort(host, port), config)
 		if err != nil {
