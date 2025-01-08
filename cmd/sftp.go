@@ -138,11 +138,6 @@ jmstool sftp root@127.0.0.1 -p 2222 -d /tmp/file.txt
 			log.Fatalf("dial err: %s", err)
 		}
 		defer client.Close()
-		sess, err := client.NewSession()
-		if err != nil {
-			log.Fatalf("Session err: %s", err)
-		}
-		defer sess.Close()
 		downloadFile := ""
 		if flagDownload, err := cmd.PersistentFlags().GetString("download"); err == nil && flagDownload != "" {
 			downloadFile = flagDownload
