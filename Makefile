@@ -10,7 +10,7 @@ BUILD_INFO_GIT_TAG ?= $(shell git describe --tags 2>/dev/null || echo unknown)
 BUILD_INFO_GIT_COMMIT ?= $(shell git rev-parse HEAD 2>/dev/null || echo unknown)
 BUILD_INFO_BUILD_DATE ?= $(shell date -u +"%Y-%m-%dT%H:%M:%SZ" || echo unknown)
 
-all: darwin-amd64 darwin-arm64 linux-amd64 linux-arm64 windows
+all: darwin-amd64 darwin-arm64 linux-amd64 linux-arm64 windows-amd64
 
 define make_artifact_full
 	@echo "Building GOOS: $(1) ARCH: $(2)"
