@@ -21,7 +21,7 @@ define make_artifact_full
 	else \
 		CGO_ENABLED=0 GOOS=$(1) GOARCH=$(2) go build -trimpath -ldflags "${LDFLAGS}" -o $(BUILDDIR)/$(NAME)-$(VERSION)-$(1)-$(2)/$(NAME) .; \
 	fi
-	cp ssh_config $(BUILDDIR)/$(NAME)-$(VERSION)-$(1)-$(2)/
+	cp ssh_config.yml $(BUILDDIR)/$(NAME)-$(VERSION)-$(1)-$(2)/
 
 	tar -C $(BUILDDIR) -czf $(BUILDDIR)/$(NAME)-$(VERSION)-$(1)-$(2).tar.gz $(NAME)-$(VERSION)-$(1)-$(2)/
 	rm -rf $(BUILDDIR)/$(NAME)-$(VERSION)-$(1)-$(2)/
