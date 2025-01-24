@@ -43,10 +43,6 @@ jobs:
           version: ${{ steps.get_version.outputs.TAG }}
           tag: ${{ steps.get_version.outputs.TAG }}
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node_version }}
-
       - uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go_version }}
@@ -55,7 +51,7 @@ jobs:
       - name: Make Build
         id: make_build
         run: |
-         make all -s && ls build
+         make all && ls build
         env:
           VERSION: ${{ steps.get_version.outputs.TAG }}
 
