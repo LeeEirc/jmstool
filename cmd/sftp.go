@@ -1,5 +1,5 @@
 /*
-Copyright © 2020 NAME HERE <EMAIL ADDRESS>
+Copyright © 2020 Eric Lee
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,196 +16,186 @@ limitations under the License.
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"io"
-	"log"
-	"net"
 	"os"
+	"path"
+	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/pkg/sftp"
 	"github.com/spf13/cobra"
-	gossh "golang.org/x/crypto/ssh"
-	"golang.org/x/term"
-	"gopkg.in/yaml.v3"
 )
 
-// sshCmd represents the ssh command
-var sftpCmd = &cobra.Command{
-	Use:   "sftp",
-	Short: "JMS KoKo sftp debug tool",
-	Long: `JMS KoKo sftp tool
-For example:
-jmstool sftp root@127.0.0.1 -p 2222 -d /tmp/file.txt
-`,
-	Run: func(cmd *cobra.Command, args []string) {
-		var (
-			username    = ""
-			host        = ""
-			port        = "2222"
-			privateFile = ""
-			password    = ""
-		)
-		for i := range args {
-			if strings.Contains(args[i], "@") {
-				usernameHost := strings.Split(args[i], "@")
-				if len(usernameHost) != 2 {
-					fmt.Println("error format: ", args[i])
-					os.Exit(1)
-				}
-				username, host = usernameHost[0], usernameHost[1]
-				break
+func newSFTPCommand() *cobra.Command {
+	var opts sshOptions
+	var remote, output string
+	var force bool
+	cmd := &cobra.Command{
+		Use:   "sftp user@host --download remote-file",
+		Short: "Download a file over SFTP for connection diagnostics",
+		Example: "  jmstool sftp root@127.0.0.1 -p 2222 -d /tmp/file.txt\n" +
+			"  jmstool sftp root@127.0.0.1 -d /tmp/file.txt -o ./downloads/",
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if _, _, err := parseTarget(args[0]); err != nil {
+				return err
 			}
-		}
-		if username == "" || host == "" {
-			_ = cmd.Help()
-			os.Exit(1)
-		}
-		auths := make([]gossh.AuthMethod, 0, 2)
-
-		if flagPort, err := cmd.PersistentFlags().GetString("port"); err == nil {
-			port = flagPort
-		}
-		if flagIdentity, err := cmd.PersistentFlags().GetString("identity"); err == nil && flagIdentity != "" {
-			privateFile = flagIdentity
-		}
-		if flagPassword, err := cmd.PersistentFlags().GetString("password"); err == nil && flagPassword != "" {
-			password = flagPassword
-			auths = append(auths, gossh.Password(password))
-		}
-		var sshConfig SSHConfig
-
-		defaultConfig := gossh.Config{}
-		defaultConfig.SetDefaults()
-
-		if flagConfig, err := cmd.PersistentFlags().GetString("config"); err == nil && flagConfig != "" {
-			raw, err := os.ReadFile(flagConfig)
+			destination, err := resolveDownloadPath(remote, output, force)
 			if err != nil {
-				log.Fatal(err)
+				return err
 			}
-			if err := yaml.Unmarshal(raw, &sshConfig); err != nil {
-				log.Fatal(err)
-			}
-			fmt.Printf("from config: %+v\n", sshConfig)
-			if len(sshConfig.Ciphers) == 0 {
-				sshConfig.Ciphers = defaultConfig.Ciphers
-			}
-			if len(sshConfig.KexAlgos) == 0 {
-				sshConfig.KexAlgos = defaultConfig.KeyExchanges
-			}
-			if len(sshConfig.HostKeyAlgos) == 0 {
-				sshConfig.HostKeyAlgos = nil
-			}
-			if len(sshConfig.MACs) == 0 {
-				sshConfig.MACs = defaultConfig.MACs
-			}
-		}
-
-		if password == "" && privateFile == "" {
-			if _, err := fmt.Fprintf(os.Stdout, "%s@%s password: ", username, host); err != nil {
-				log.Fatal(err)
-			}
-			if result, err := term.ReadPassword(int(os.Stdout.Fd())); err != nil {
-				log.Fatal(err)
-			} else {
-				auths = append(auths, gossh.Password(string(result)))
-			}
-
-		}
-		if privateFile != "" {
-			raw, err := os.ReadFile(privateFile)
+			client, err := dialSSH(cmd.Context(), args[0], opts, cmd.ErrOrStderr())
 			if err != nil {
-				log.Fatal(err)
+				return err
 			}
-			signer, err := gossh.ParsePrivateKey(raw)
+			defer client.Close()
+			sftpClient, err := sftp.NewClient(client)
 			if err != nil {
-				log.Fatal(err)
+				return fmt.Errorf("start SFTP subsystem: %w", err)
 			}
-
-			auths = append(auths, gossh.PublicKeys(signer))
-		}
-		config := &gossh.ClientConfig{
-			User:              username,
-			Auth:              auths,
-			HostKeyCallback:   gossh.InsecureIgnoreHostKey(),
-			Config:            gossh.Config{Ciphers: sshConfig.Ciphers, KeyExchanges: sshConfig.KexAlgos, MACs: sshConfig.MACs},
-			Timeout:           30 * time.Second,
-			HostKeyAlgorithms: sshConfig.HostKeyAlgos,
-		}
-		client, err := gossh.Dial("tcp", net.JoinHostPort(host, port), config)
-		if err != nil {
-			log.Fatalf("dial err: %s", err)
-		}
-		defer client.Close()
-		downloadFile := ""
-		if flagDownload, err := cmd.PersistentFlags().GetString("download"); err == nil && flagDownload != "" {
-			downloadFile = flagDownload
-
-		}
-		if downloadFile == "" {
-			log.Println("download file is required")
-			return
-		}
-		sftpClient, err := sftp.NewClient(client)
-		if err != nil {
-			log.Printf("sftpClient failed: %s\n", err)
-			return
-		}
-
-		defer sftpClient.Close()
-
-		srcFile, err := sftpClient.Open(downloadFile)
-		if err != nil {
-			log.Printf("Open failed: %s\n", err)
-			return
-		}
-		defer srcFile.Close()
-		dstName := srcFile.Name()
-		if strings.Contains(dstName, "/") {
-			dstName = dstName[strings.LastIndex(dstName, "/")+1:]
-		}
-		dstFile, err := os.Create(dstName)
-		if err != nil {
-			log.Printf("Create failed: %s\n", err)
-			return
-		}
-		defer dstFile.Close()
-		srcReader := &fileReader{read: srcFile}
-		if _, err := io.Copy(dstFile, srcReader); err != nil {
-			log.Printf("Copy file failed: %s\n", err)
-			return
-		}
-		log.Printf("Download file %s to %s success\n", downloadFile, dstName)
-	},
+			defer sftpClient.Close()
+			n, err := downloadSFTPFile(sftpClient, remote, destination, force)
+			if err != nil {
+				return err
+			}
+			_, err = fmt.Fprintf(cmd.ErrOrStderr(), "Downloaded %s to %s (%d bytes)\n", remote, destination, n)
+			return err
+		},
+	}
+	addSSHFlags(cmd, &opts)
+	cmd.Flags().StringVarP(&remote, "download", "d", "", "Remote file to download (required)")
+	cmd.Flags().StringVarP(&output, "output", "o", "", "Local file or existing directory (default: remote file name)")
+	cmd.Flags().BoolVar(&force, "force", false, "Replace an existing local file after a successful download")
+	return cmd
 }
 
-func init() {
-	rootCmd.AddCommand(sftpCmd)
-	sftpCmd.PersistentFlags().StringP("port", "p", "22", "ssh port")
-	sftpCmd.PersistentFlags().StringP("password", "P", "", "ssh password")
-	sftpCmd.PersistentFlags().StringP("identity", "i", "", "identity_file")
-	sftpCmd.PersistentFlags().StringP("config", "c", "", "config file for cipher, kex, hostkey, macs")
-	sftpCmd.PersistentFlags().StringP("download", "d", "", "sftp download file")
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// sshCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// sshCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+func resolveDownloadPath(remote, output string, force bool) (string, error) {
+	if remote == "" {
+		return "", errors.New("--download is required")
+	}
+	name := path.Base(remote)
+	if name == "." || name == ".." || name == "/" || strings.HasSuffix(remote, "/") {
+		return "", fmt.Errorf("--download must name a file: %q", remote)
+	}
+	useRemoteName := output == ""
+	if output != "" {
+		var err error
+		output, err = expandPath(output)
+		if err != nil {
+			return "", err
+		}
+		info, err := os.Stat(output)
+		if err == nil && info.IsDir() {
+			useRemoteName = true
+		} else if err != nil && !errors.Is(err, os.ErrNotExist) {
+			return "", fmt.Errorf("inspect output %q: %w", output, err)
+		}
+	}
+	if useRemoteName {
+		// A remote POSIX name must not become a local path on Windows.
+		if strings.ContainsAny(name, `/\`) || filepath.VolumeName(name) != "" {
+			return "", fmt.Errorf("remote file name %q cannot be used locally; specify --output with a file name", name)
+		}
+		output = filepath.Join(output, name)
+	}
+	if err := validateDownloadDestination(output, force); err != nil {
+		return "", err
+	}
+	return output, nil
 }
 
-type fileReader struct {
-	read io.ReadCloser
+func validateDownloadDestination(destination string, force bool) error {
+	info, err := os.Lstat(destination)
+	if err == nil {
+		if info.IsDir() {
+			return fmt.Errorf("output %q is a directory", destination)
+		}
+		if !force {
+			return fmt.Errorf("output %q already exists; use --force to replace it", destination)
+		}
+		if !info.Mode().IsRegular() && info.Mode()&os.ModeSymlink == 0 {
+			return fmt.Errorf("output %q is not a regular file", destination)
+		}
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("inspect output %q: %w", destination, err)
+	}
+	parent, err := os.Stat(filepath.Dir(destination))
+	if err != nil {
+		return fmt.Errorf("inspect output directory: %w", err)
+	}
+	if !parent.IsDir() {
+		return fmt.Errorf("output parent %q is not a directory", filepath.Dir(destination))
+	}
+	return nil
 }
 
-func (f *fileReader) Read(p []byte) (nr int, err error) {
-	return f.read.Read(p)
+func downloadSFTPFile(client *sftp.Client, remote, destination string, force bool) (int64, error) {
+	source, err := client.Open(remote)
+	if err != nil {
+		return 0, fmt.Errorf("open remote file %q: %w", remote, err)
+	}
+	defer source.Close()
+	info, err := source.Stat()
+	if err != nil {
+		return 0, fmt.Errorf("stat remote file %q: %w", remote, err)
+	}
+	if info.IsDir() {
+		return 0, fmt.Errorf("remote path %q is a directory", remote)
+	}
+	return writeDownload(destination, force, func(destination io.Writer) (int64, error) {
+		// Preserve the original tool's sequential SFTP reads for diagnostics.
+		n, err := io.Copy(destination, struct{ io.Reader }{source})
+		if err != nil {
+			return n, fmt.Errorf("read remote file %q: %w", remote, err)
+		}
+		if err := source.Close(); err != nil {
+			return n, fmt.Errorf("close remote file %q: %w", remote, err)
+		}
+		return n, nil
+	})
 }
 
-func (f *fileReader) Close() error {
-	return f.read.Close()
+// writeDownload keeps the destination untouched until the complete file has
+// been written and closed. Without --force, hard-link publication also prevents
+// clobbering a destination created by another process during the transfer.
+func writeDownload(destination string, force bool, transfer func(io.Writer) (int64, error)) (n int64, err error) {
+	if err := validateDownloadDestination(destination, force); err != nil {
+		return 0, err
+	}
+	temporary, err := os.CreateTemp(filepath.Dir(destination), ".jmstool-download-*")
+	if err != nil {
+		return 0, fmt.Errorf("create temporary download file: %w", err)
+	}
+	defer func() {
+		_ = temporary.Close()
+		if removeErr := os.Remove(temporary.Name()); removeErr != nil && !errors.Is(removeErr, os.ErrNotExist) && err == nil {
+			err = fmt.Errorf("remove temporary download file: %w", removeErr)
+		}
+	}()
+	if n, err = transfer(temporary); err != nil {
+		return n, fmt.Errorf("download file: %w", err)
+	}
+	if err := temporary.Sync(); err != nil {
+		return n, fmt.Errorf("sync downloaded file: %w", err)
+	}
+	if err := temporary.Close(); err != nil {
+		return n, fmt.Errorf("close downloaded file: %w", err)
+	}
+	if force {
+		err = os.Rename(temporary.Name(), destination)
+	} else {
+		err = os.Link(temporary.Name(), destination)
+	}
+	if err != nil {
+		if !force && errors.Is(err, os.ErrExist) {
+			return n, fmt.Errorf("output %q already exists; use --force to replace it: %w", destination, err)
+		}
+		if !force {
+			return n, fmt.Errorf("publish downloaded file %q without replacement: %w; use a filesystem that supports hard links, or --force only if replacement is acceptable", destination, err)
+		}
+		return n, fmt.Errorf("publish downloaded file %q: %w", destination, err)
+	}
+	return n, nil
 }
