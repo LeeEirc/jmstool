@@ -1,87 +1,66 @@
-/*
-Copyright © 2020 Eric
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-	http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+// Copyright 2020 Eric. Licensed under the Apache License, Version 2.0.
 package cmd
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/spf13/cobra"
-
-	homedir "github.com/mitchellh/go-homedir"
-	"github.com/spf13/viper"
+	"golang.org/x/crypto/ssh"
 )
 
-var cfgFile string
+// Build information is populated by the Makefile's linker flags.
+var (
+	Version   = "dev"
+	Commit    = "unknown"
+	BuildDate = "unknown"
+)
 
-// rootCmd represents the base command when called without any subcommands
-var rootCmd = &cobra.Command{
-	Use:   "JMS tool",
-	Short: "JMS tool about ssh telnet",
-	Long:  ``,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	//	Run: func(cmd *cobra.Command, args []string) { },
+// NewRootCommand creates independent commands so flags do not leak between runs.
+func NewRootCommand() *cobra.Command {
+	root := &cobra.Command{
+		Use:           "jmstool",
+		Short:         "Diagnose SSH, SFTP and Telnet connections to JumpServer and assets",
+		SilenceErrors: true,
+		SilenceUsage:  true,
+		Version:       fmt.Sprintf("%s (commit %s, built %s)", Version, Commit, BuildDate),
+	}
+	root.SetIn(os.Stdin)
+	root.SetOut(os.Stdout)
+	root.SetErr(os.Stderr)
+	root.AddCommand(newSSHCommand(), newSFTPCommand(), newTelnetCommand())
+	return root
 }
 
-// Execute adds all child commands to the root command and sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
-	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	err := NewRootCommand().ExecuteContext(ctx)
+	if err != nil && ctx.Err() != nil {
+		err = ctx.Err()
+	}
+	stop()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Error:", err)
+		os.Exit(exitCode(err))
 	}
 }
 
-func init() {
-	cobra.OnInitialize(initConfig)
-
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
-
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.jmstool.yaml)")
-
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-}
-
-// initConfig reads in config file and ENV variables if set.
-func initConfig() {
-	if cfgFile != "" {
-		// Use config file from the flag.
-		viper.SetConfigFile(cfgFile)
-	} else {
-		// Find home directory.
-		home, err := homedir.Dir()
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+func exitCode(err error) int {
+	if err == nil {
+		return 0
+	}
+	var remoteExit *ssh.ExitError
+	if errors.As(err, &remoteExit) {
+		if status := remoteExit.ExitStatus(); status > 0 && status < 256 {
+			return status
 		}
-
-		// Search config in home directory with name ".jmstool" (without extension).
-		viper.AddConfigPath(home)
-		viper.SetConfigName(".jmstool")
 	}
-
-	viper.AutomaticEnv() // read in environment variables that match
-
-	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
-		fmt.Println("Using config file:", viper.ConfigFileUsed())
+	if errors.Is(err, context.Canceled) {
+		return 130
 	}
+	return 1
 }

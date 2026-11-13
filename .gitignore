@@ -1,3 +1,4 @@
 .idea/
 .jmstool.yaml
 jmstool*
+/build/

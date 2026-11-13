@@ -1,30 +1,23 @@
-
-
-BUILDDIR=build
-LDFLAGS=-w -s
-VERSION ?= Unknown
-LDFLAGS+=-X golang.org/x/crypto/ssh.debugHandshake=true
-NAME=jmstool
-
-BUILD_INFO_GIT_TAG ?= $(shell git describe --tags 2>/dev/null || echo unknown)
+GO ?= go
+BUILDDIR ?= build
+NAME := jmstool
+VERSION ?= dev
 BUILD_INFO_GIT_COMMIT ?= $(shell git rev-parse HEAD 2>/dev/null || echo unknown)
-BUILD_INFO_BUILD_DATE ?= $(shell date -u +"%Y-%m-%dT%H:%M:%SZ" || echo unknown)
+BUILD_INFO_BUILD_DATE ?= $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
+LDFLAGS := -w -s -X github.com/LeeEirc/jmstool/cmd.Version=$(VERSION) -X github.com/LeeEirc/jmstool/cmd.Commit=$(BUILD_INFO_GIT_COMMIT) -X github.com/LeeEirc/jmstool/cmd.BuildDate=$(BUILD_INFO_BUILD_DATE)
+TARGETS := darwin-amd64 darwin-arm64 linux-amd64 linux-arm64 windows-amd64 windows-arm64
 
-all: darwin-amd64 darwin-arm64 linux-amd64 linux-arm64 windows-amd64
+.PHONY: all test vet clean $(TARGETS)
+
+all: $(TARGETS)
 
 define make_artifact_full
-	@echo "Building GOOS: $(1) ARCH: $(2)"
-	mkdir -p $(BUILDDIR)/$(NAME)-$(VERSION)-$(1)-$(2)/
-
-	if [ "$(1)" = "windows" ]; then \
-		CGO_ENABLED=0 GOOS=$(1) GOARCH=$(2) go build -trimpath -ldflags "${LDFLAGS}" -o $(BUILDDIR)/$(NAME)-$(VERSION)-$(1)-$(2)/$(NAME).exe .; \
-	else \
-		CGO_ENABLED=0 GOOS=$(1) GOARCH=$(2) go build -trimpath -ldflags "${LDFLAGS}" -o $(BUILDDIR)/$(NAME)-$(VERSION)-$(1)-$(2)/$(NAME) .; \
-	fi
-	cp ssh_config.yml $(BUILDDIR)/$(NAME)-$(VERSION)-$(1)-$(2)/
-
-	tar -C $(BUILDDIR) -czf $(BUILDDIR)/$(NAME)-$(VERSION)-$(1)-$(2).tar.gz $(NAME)-$(VERSION)-$(1)-$(2)/
-	rm -rf $(BUILDDIR)/$(NAME)-$(VERSION)-$(1)-$(2)/
+	@echo "Building $(1)/$(2)"
+	mkdir -p "$(BUILDDIR)/$(NAME)-$(VERSION)-$(1)-$(2)"
+	CGO_ENABLED=0 GOOS=$(1) GOARCH=$(2) $(GO) build -trimpath -ldflags "$(LDFLAGS)" -o "$(BUILDDIR)/$(NAME)-$(VERSION)-$(1)-$(2)/$(NAME)$(if $(filter windows,$(1)),.exe,)" .
+	cp ssh_config.yml README.md LICENSE "$(BUILDDIR)/$(NAME)-$(VERSION)-$(1)-$(2)/"
+	tar -C "$(BUILDDIR)" -czf "$(BUILDDIR)/$(NAME)-$(VERSION)-$(1)-$(2).tar.gz" "$(NAME)-$(VERSION)-$(1)-$(2)"
+	rm -rf "$(BUILDDIR)/$(NAME)-$(VERSION)-$(1)-$(2)"
 endef
 
 darwin-amd64:
@@ -42,7 +35,14 @@ linux-arm64:
 windows-amd64:
 	$(call make_artifact_full,windows,amd64)
 
+windows-arm64:
+	$(call make_artifact_full,windows,arm64)
 
-.PHONY: clean
+test:
+	$(GO) test -race ./...
+
+vet:
+	$(GO) vet ./...
+
 clean:
-	rm -rf $(BUILDDIR)/*
+	rm -rf "$(BUILDDIR)"
