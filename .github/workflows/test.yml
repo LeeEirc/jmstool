@@ -30,7 +30,12 @@ jobs:
           go-version: ${{ matrix.go }}
       - name: Check formatting
         shell: bash
-        run: test -z "$(gofmt -l .)"
+        run: |
+          files="$(gofmt -l .)"
+          if [ -n "$files" ]; then
+            printf '%s\n' "$files"
+            exit 1
+          fi
       - name: Vet
         run: go vet ./...
       - name: Test with race detector
