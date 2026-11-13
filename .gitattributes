@@ -1,0 +1,2 @@
+# Keep Go sources consistent with gofmt on every platform, including Windows.
+*.go text eol=lf
